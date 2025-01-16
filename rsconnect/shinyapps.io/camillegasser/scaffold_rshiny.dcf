@@ -5,6 +5,6 @@ account: camillegasser
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 13686930
-bundleId: 9633170
+bundleId: 9657859
 url: https://camillegasser.shinyapps.io/scaffold_rshiny/
 version: 1

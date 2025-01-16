@@ -23,89 +23,140 @@ plot_theme <- theme_light() +
         legend.position = 'none',
         text = element_text(size = 15, family = 'Helvetica'),
         axis.text = element_text(size = 14, family = 'Helvetica'),
-        plot.subtitle = element_text(hjust = 0.5, margin = margin(b = 10)),
+        plot.subtitle = element_text(margin = margin(b = 10)),
         axis.title.x = element_text(margin = margin(t = 10)),
         axis.title.y = element_text(margin = margin(r = 10)),
         axis.text.x = element_text(margin = margin(t = 5)),
         axis.text.y = element_text(margin = margin(r = 5)))
 
-## start building app
 
-cards <- list(
-  card(
-    full_screen = TRUE,
-    card_header('raw data'),
-    dataTableOutput('raw_data')),
-  card(
-    full_screen = TRUE,
-    card_header('overall memory performance'),
-    plotOutput('memory_hist'),
-  ),
-  card(
-    full_screen = TRUE,
-    card_header('memory performance by condition'),
-    plotOutput('memory_by_condition')
-  ),
-  card(
-    full_screen = TRUE,
-    card_header('memory performance by condition & sequence position'),
-    plotOutput('memory_by_position')
-  )
-)
+library(shiny)
 
 img_df <- data.frame(memory_test = c('order memory', 'spatial memory', 'item memory'), 
                      img_loc = c('img/order_memory.png', 'img/spatial_memory.png', 'img/item_memory.png'),
                      stringsAsFactors = FALSE)
 
-exp_select <- selectInput(inputId = 'experiment', label = 'experiment', choices = c(1, 2, 3))
-test_select <- selectInput(inputId = 'memory_test', label = 'memory test', choices = c('order memory', 'spatial memory', 'item memory'))
-
-ui <- fluidPage(
-  page_sidebar(
-    title = 'Effects of predictable behavior on episodic memory',
-    sidebar = tagList(div('Interactive data dashboard for',
-                          a(href = 'https://journals.sagepub.com/doi/10.1177/09567976231158292', target = '_blank', 'Gasser & Davachi (2023)')),
-                      div('Select the experiment & memory test you want to explore.',
-                          hr(),
-                          exp_select,
-                          test_select),
-                      imageOutput('test_image', height = 'auto'),
-                      div(HTML('<br>
-                                <font color="#fa7189"><b>predictable</b></font>: participants execute a <i>familiar & well-learned</i> action sequence during object encoding<br><br>
-                                <font color="#2cada4"><b>variable</b></font>: participants execute a <i>random</i> action sequence during encoding'))),
-    fluidRow(
-      column(8, do.call(tagList, cards[1])),
-      column(4, do.call(tagList, cards[2]))
+ui <- navbarPage(
+  title = 'Effects of predictable behavior on episodic memory',
+  theme = shinythemes::shinytheme('simplex'),
+  
+  # include external CSS and custom inline styles
+  # tags$head(includeCSS(path = 'www/style.css')),
+  tags$style(HTML('* { 
+                      margin-top: 2px;
+                      margin-bottom: 2px;
+                   }')),
+  
+  # header
+  header = tags$div(
+    style = 'display: flex; flex-direction: column; margin-right: 15px; margin-top: 0px; margin-left: 15px',
+    
+    # Row for selectors
+    tags$div(
+      style = 'display: flex; align-items: center; gap: 10px;',
+      selectInput(
+        inputId = 'experiment',
+        label = 'experiment',
+        choices = c(1, 2, 3),
+        width = '50%'
+      ),
+      selectInput(
+        inputId = 'memory_test',
+        label = 'memory test',
+        choices = c('order memory', 'spatial memory', 'item memory'),
+        width = '50%'
+      )
     ),
-    fluidRow(
-      column(5, do.call(tagList, cards[3])),
-      column(7, do.call(tagList, cards[4]))
+    
+    # Row for additional text
+    tags$div(
+      style = 'margin-top: 5px;',
+      p('Note that spatial memory was only tested in Experiments 1 & 2, and item memory was only tested in Experiment 3.')
+    )
+  ),
+  
+  # Define tabs
+  tabsetPanel(
+    # selected = 'memory results',
+    
+    ## finicky if you want this to look good at multiple sizes... just leaving out for now
+    # tabPanel(
+    #   'data overview',
+    #   fluidRow(
+    #     column(width = 12,
+    #            br(),
+    #            p('The goal of this experiment was to test whether engaging in familiar actions enhances
+    #               memory for simultaneous experience.',
+    #              style = 'font-size:14px; margin-left:5px'),
+    #            p('During the main task, subjects "ran errands" in two stores. Each errand involved visiting a sequence
+    #               of aisles (by making simple motor responses), and "collecting" an item from each aisle.
+    #               After the errands were over, memory was tested for the collected items.',
+    #              style = 'font-size:14px; margin-left:5px'),
+    #            HTML('<p style="font-size:14px; margin-left:5px">Participants visited two different stores during the experiment.
+    #               In one of these stores (“<font color="#fa7189"><b>predictable</b></font>”), the sequence of aisles was always the exact same — 
+    #               and participants memorized this sequence before the errands began. In the other (“<font color="#2cada4"><b>variable</b></font>”),
+    #               the aisle sequence changed on each errand.'),
+    #            HTML('<p style="font-size:14px; margin-left:5px">For more details,
+    #                  see <a href="https://journals.sagepub.com/doi/10.1177/09567976231158292">this paper</a>.</p>'),
+    #     ),
+    #     # column(width = 7,
+    #     #        imageOutput('task_img', width = '95%')
+    #     # )
+    #   )
+    # ),
+    
+    # Second panel: Data plots
+    tabPanel(
+      'memory results',
+      fluidRow(
+        column(width = 6,
+               h4('Distribution of overall memory accuracy'),
+               plotOutput(outputId = 'memory_histogram')),
+        column(width = 6,
+               h4('Memory accuracy by condition'),
+               plotOutput(outputId = 'memory_by_condition'))
+      ),
+      fluidRow(
+        column(width = 6,
+               h4('Memory accuracy by sequence position'),
+               p('Each errand involved visiting 6 aisles and collecting 6 items.'),
+               plotOutput(outputId = 'memory_by_position')),
+        column(width = 6,
+               h4('Memory accuracy by task block'),
+               p('The experiment involved 8 blocks in total (each with 4 errands).'),
+               plotOutput(outputId = 'memory_by_block'))
+      )
     ),
-    tags$head(includeCSS(path = 'www/style.css'))
+    
+    # third panel: raw data
+    tabPanel('raw data',
+             dataTableOutput('raw_data')
+    )
   )
 )
 
+# define the server
 server <- function(input, output) {
   
-  # image
-  output$test_image <- renderImage({
-    imgtxt <- img_df[img_df$memory_test == input$memory_test, 2]
-    list(src = imgtxt,
+  # imgae of task
+  output$task_img <- renderImage({
+    list(src = 'img/task_graphic.jpg',
          contentType = 'image/png',
-         width = '100%'
+         width = '50%',
+         height = 'auto'
     )
   }, deleteFile = FALSE)
   
-  # raw memory data
-  output$raw_data <- renderDataTable({
-    filtered_data <- memory_data %>%
-      filter(experiment == input$experiment, test == input$memory_test) %>%
-      select(-c(experiment, test, response, chance))
-    datatable(filtered_data, options = list(pageLength = 7))
-  })
+  # # image of memory test
+  # output$memory_test_img <- renderImage({
+  #   imgtxt <- img_df[img_df$memory_test == input$memory_test, 2]
+  #   list(src = imgtxt,
+  #        contentType = 'image/png',
+  #        width = '90%'
+  #   )
+  # }, deleteFile = FALSE)
   
-  # accuracy histogram
-  output$memory_hist <- renderPlot({
+  output$memory_histogram <- renderPlot({
     cc <- ifelse(input$memory_test == 'order memory', '#7dcfb6',
                  ifelse(input$memory_test == 'spatial memory', '#00b2ca', '#1d4e89'))
     
@@ -115,14 +166,22 @@ server <- function(input, output) {
       summarise(mean_acc = mean(accuracy, na.rm = T),
                 chance_level = mean(chance))
     
-    ggplot(filtered_data, aes(x = mean_acc)) + 
+    ggplot(filtered_data, aes(x = mean_acc)) +
       geom_histogram(fill = cc, color = cc, bins = 15, alpha = 0.5) +
       geom_vline(xintercept = mean(filtered_data$chance_level), linetype = 'dashed', color = 'grey20') +
       geom_vline(xintercept = mean(filtered_data$mean_acc), linewidth = 1.5, color = 'grey20') +
-      labs(x = 'proportion correct\n(per subject)',
-           subtitle = 'dotted line: chance\nsolid line: avg') +
+      labs(x = 'memory accuracy\n(per subject)',
+           subtitle = 'solid line: mean across subjects') +
       expand_limits(x = 1) +
       plot_theme
+  })
+  
+  # raw memory data table
+  output$raw_data <- renderDataTable({
+    filtered_data <- memory_data %>%
+      filter(experiment == input$experiment, test == input$memory_test) %>%
+      select(-c(experiment, test, response, chance))
+    datatable(filtered_data, options = list(pageLength = 10))
   })
   
   # accuracy by condition
@@ -159,7 +218,7 @@ server <- function(input, output) {
                         ymin = group_mean_acc - group_sem_acc, ymax = group_mean_acc + group_sem_acc)) +
       scale_fill_manual(values = c('#fa7189','#2cada4')) +
       scale_color_manual(values = c('#fa7189','#2cada4')) +
-      labs(x = 'condition', y = 'accuracy',
+      labs(x = 'condition', y = 'memory accuracy',
            subtitle = stat_str) +
       expand_limits(y = 0) +
       plot_theme +
@@ -191,7 +250,38 @@ server <- function(input, output) {
       scale_color_manual(values = c('#fa7189','#2cada4')) +
       scale_fill_manual(values = c('#fa7189','#2cada4')) +
       labs(x = 'sequence position', y = 'accuracy') +
-      plot_theme
+      plot_theme +
+      theme(legend.position = 'bottom')
+    
+  })
+  
+  output$memory_by_block <- renderPlot({
+    
+    filtered_data <- memory_data %>%
+      filter(experiment == input$experiment, test == input$memory_test) %>%
+      group_by(subject, condition, block) %>%
+      summarise(mean_acc = mean(accuracy, na.rm = T))
+    
+    group_data <- filtered_data %>%
+      group_by(condition, block) %>%
+      summarise(group_mean_acc = mean(mean_acc), group_sem_acc = sem(mean_acc)) %>%
+      ungroup()
+    
+    # plot
+    ggplot(group_data, aes(x = block, y = group_mean_acc, fill = condition, color = condition)) +
+      geom_jitter(data = filtered_data, aes(x = block, y = mean_acc, fill = condition),
+                  color = 'white', alpha = 0.4, shape = 21, size = 2.3,
+                  position = position_jitterdodge(jitter.width = 0.15, jitter.height = 0.02, dodge.width = 0.9)) +
+      # geom_line(size = 1.5) +
+      geom_bar(alpha = 0.5, stat = 'summary', position = position_dodge(0.9)) +
+      geom_errorbar(aes(x = block, ymin = group_mean_acc - group_sem_acc, ymax = group_mean_acc + group_sem_acc),
+                    width = 0, size = 1, position = position_dodge(0.9)) +
+      scale_fill_manual(values = c('#fa7189','#2cada4')) +
+      scale_color_manual(values = c('#fa7189','#2cada4')) +
+      scale_x_continuous(breaks = 1:8) +
+      labs(x = 'block number', y = 'memory accuracy') +
+      plot_theme +
+      theme(legend.position = 'bottom')
     
   })
   
